@@ -1,9 +1,9 @@
-// pages/submit.js
+// pages/submit.js (sudah ada AuthWrapper, jadi kita cuma ubah isi return-nya)
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import AuthWrapper from '../components/AuthWrapper'; // Import komponen wrapper
+import { auth, db } from '../lib/firebase'; // Import auth
+import AuthWrapper from '../components/AuthWrapper';
 
 export default function SubmitPage() {
   const router = useRouter();
@@ -34,25 +34,21 @@ export default function SubmitPage() {
         return;
       }
 
-      // --- Bagian yang diupdate ---
-      // Kita perlu mendapatkan UID user yang sedang login untuk menyimpannya sebagai 'sellerId'
-      // Kita bisa mengaksesnya melalui `auth.currentUser.uid`
-      // Kita juga bisa mendapatkan email dari `auth.currentUser.email`
-      // Pastikan AuthWrapper sudah memastikan user login sebelum sampai ke sini
-      const { currentUser } = require('../lib/firebase'); // Import instance auth
-      const sellerId = currentUser.uid; // UID user yang sedang login
-      const sellerEmail = currentUser.email; // Email user yang sedang login
+      // Dapatkan UID dan Email user yang login
+      const currentUser = auth.currentUser; // AuthWrapper memastikan ini tidak null
+      if (!currentUser) {
+        throw new Error("User tidak ditemukan. Silakan login kembali.");
+      }
 
       const newAccountData = {
         title: title.trim(),
         price: parseFloat(price),
         category: category.trim(),
         description: description.trim(),
-        sellerId, // Tambahkan sellerId
-        sellerEmail, // Tambahkan sellerEmail (opsional, bisa untuk tampilan)
+        sellerId: currentUser.uid, // Pastikan sellerId diset
+        sellerEmail: currentUser.email, // Pastikan sellerEmail diset
         createdAt: new Date()
       };
-      // --------------------------
 
       const docRef = await addDoc(collection(db, 'accounts'), newAccountData);
 
@@ -64,7 +60,6 @@ export default function SubmitPage() {
         category: '',
         description: ''
       });
-      // Optional: redirect ke halaman utama setelah submit
       router.push('/');
 
     } catch (error) {
@@ -74,57 +69,72 @@ export default function SubmitPage() {
   };
 
   return (
-    // Bungkus isi halaman dengan AuthWrapper
     <AuthWrapper>
-      <div>
-        <h1>Tambah Akun Baru</h1>
-        <a href="/">← Kembali ke Daftar Akun</a>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="title">Judul Akun *</label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            placeholder="Contoh: Akun ML Gratis Skin"
-            required
-          />
-
-          <label htmlFor="price">Harga (Rp) *</label>
-          <input
-            type="number"
-            id="price"
-            name="price"
-            value={formData.price}
-            onChange={handleChange}
-            placeholder="Contoh: 50000"
-            required
-          />
-
-          <label htmlFor="category">Kategori *</label>
-          <input
-            type="text"
-            id="category"
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            placeholder="Contoh: Mobile Legends, Free Fire, Valorant"
-            required
-          />
-
-          <label htmlFor="description">Deskripsi (Opsional)</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Ceritakan sedikit tentang akun ini..."
-          ></textarea>
-
-          <button type="submit">Tambahkan Akun</button>
-        </form>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f0f2f5' }}>
+        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', width: '100%', maxWidth: '500px' }}>
+          <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Tambah Akun Baru</h2>
+          <a href="/" style={{ display: 'inline-block', marginBottom: '1rem', color: '#007bff', textDecoration: 'none' }}>← Kembali ke Daftar Akun</a>
+          {error && <p style={{ color: 'red', marginBottom: '1rem' }}>{error}</p>}
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '1rem' }}>
+              <label htmlFor="title" style={{ display: 'block', marginBottom: '0.5rem' }}>Judul Akun *</label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Contoh: Akun ML Gratis Skin"
+                required
+                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <label htmlFor="price" style={{ display: 'block', marginBottom: '0.5rem' }}>Harga (Rp) *</label>
+              <input
+                type="number"
+                id="price"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                placeholder="Contoh: 50000"
+                required
+                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <label htmlFor="category" style={{ display: 'block', marginBottom: '0.5rem' }}>Kategori *</label>
+              <input
+                type="text"
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                placeholder="Contoh: Mobile Legends, Free Fire, Valorant"
+                required
+                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <label htmlFor="description" style={{ display: 'block', marginBottom: '0.5rem' }}>Deskripsi (Opsional)</label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Ceritakan sedikit tentang akun ini..."
+                rows="3"
+                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+              ></textarea>
+            </div>
+            <button
+              type="submit"
+              style={{ width: '100%', padding: '0.75rem', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            >
+              Tambahkan Akun
+            </button>
+          </form>
+        </div>
       </div>
     </AuthWrapper>
   );

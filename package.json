@@ -8,8 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
-    "firebase": "^10.14.1", // Versi terbaru Firebase modular API
-    "next": "^14.2.13",     // Versi stabil Next.js terbaru (2025)
+    "firebase": "^10.14.1",
+    "next": "^14.2.13", 
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   }

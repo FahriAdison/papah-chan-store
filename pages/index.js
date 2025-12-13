@@ -1,15 +1,18 @@
 // pages/index.js
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import AuthWrapper from '../components/AuthWrapper'; // Import AuthWrapper
+import AuthWrapper from '../components/AuthWrapper';
+import Header from '../components/Header'; // Import Header
 
 export default function HomePage({ accounts }) {
   return (
-    // Bungkus konten dengan AuthWrapper
+    // Bungkus isi halaman dengan AuthWrapper
     <AuthWrapper>
+      {/* Tambahkan Header di sini */}
+      <Header />
+
       <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-        <h1 style={{ color: '#333' }}>Daftar Akun Dijual</h1>
-        {/* Link ke halaman submit hanya muncul jika login */}
+        <h1 style={{ color: '#333', marginTop: '20px' }}>Daftar Akun Dijual</h1>
         <a href="/submit" style={{
           display: 'inline-block',
           marginBottom: '20px',
@@ -29,14 +32,30 @@ export default function HomePage({ accounts }) {
                 margin: '10px 0',
                 padding: '15px',
                 borderRadius: '8px',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                display: 'flex',
+                gap: '15px' // Jarak antara gambar dan teks
               }}>
-                <h3 style={{ margin: '0 0 5px 0', color: '#007bff' }}>{acc.title}</h3>
-                <p style={{ margin: '5px 0' }}><strong>Rp {acc.price?.toLocaleString('id-ID')}</strong></p>
-                <p style={{ margin: '5px 0', color: '#6c757d' }}>Kategori: {acc.category}</p>
-                {acc.description && <p style={{ margin: '5px 0' }}>{acc.description}</p>}
-                {/* Menampilkan siapa yang menjual (opsional) */}
-                <small style={{ color: '#888' }}>Dijual oleh: {acc.sellerEmail}</small>
+                {/* Tampilkan gambar jika ada */}
+                {acc.imageUrl && (
+                  <img
+                    src={acc.imageUrl}
+                    alt={acc.title}
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      objectFit: 'cover',
+                      borderRadius: '4px'
+                    }}
+                  />
+                )}
+                <div>
+                  <h3 style={{ margin: '0 0 5px 0', color: '#007bff' }}>{acc.title}</h3>
+                  <p style={{ margin: '5px 0' }}><strong>Rp {acc.price?.toLocaleString('id-ID')}</strong></p>
+                  <p style={{ margin: '5px 0', color: '#6c757d' }}>Kategori: {acc.category}</p>
+                  {acc.description && <p style={{ margin: '5px 0' }}>{acc.description}</p>}
+                  <small style={{ color: '#888' }}>Dijual oleh: {acc.sellerEmail}</small>
+                </div>
               </li>
             ))
           ) : (

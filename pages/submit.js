@@ -1,9 +1,11 @@
-// pages/submit.js (sudah ada AuthWrapper, jadi kita cuma ubah isi return-nya)
+// pages/submit.js
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { collection, addDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase'; // Import auth
+// import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // <-- Hapus ini
+import { auth, db } from '../lib/firebase'; // <-- Hapus 'storage' dari sini juga
 import AuthWrapper from '../components/AuthWrapper';
+import Header from '../components/Header';
 
 export default function SubmitPage() {
   const router = useRouter();
@@ -13,6 +15,8 @@ export default function SubmitPage() {
     category: '',
     description: ''
   });
+  const [image, setImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
@@ -23,8 +27,16 @@ export default function SubmitPage() {
     }));
   };
 
+  const handleImageChange = (e) => {
+    if (e.target.files[0]) {
+      setImage(e.target.files[0]);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (uploading) return;
 
     try {
       const { title, price, category, description } = formData;
@@ -34,10 +46,45 @@ export default function SubmitPage() {
         return;
       }
 
-      // Dapatkan UID dan Email user yang login
-      const currentUser = auth.currentUser; // AuthWrapper memastikan ini tidak null
+      const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error("User tidak ditemukan. Silakan login kembali.");
+      }
+
+      let imageUrl = '';
+
+      if (image) {
+        setUploading(true);
+        setError('');
+
+        // --- Ganti logika upload ---
+        const formDataForUpload = new FormData();
+        formDataForUpload.append('file', image); // Nama field harus sesuai dengan yang dibaca di API route
+
+        try {
+          const response = await fetch('/api/upload', { // Panggil API endpoint kita
+            method: 'POST',
+            body: formDataForUpload,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload gagal');
+          }
+
+          const { url } = await response.json(); // Ambil URL dari response
+          imageUrl = url;
+          console.log("Gambar berhasil diupload ke Blob. URL:", imageUrl);
+
+        } catch (uploadError) {
+          console.error("Upload error:", uploadError);
+          setError(uploadError.message || 'Gagal mengupload gambar. Silakan coba lagi.');
+          setUploading(false);
+          return;
+        } finally {
+          setUploading(false);
+        }
+        // --- End of Ganti logika upload ---
       }
 
       const newAccountData = {
@@ -45,9 +92,10 @@ export default function SubmitPage() {
         price: parseFloat(price),
         category: category.trim(),
         description: description.trim(),
-        sellerId: currentUser.uid, // Pastikan sellerId diset
-        sellerEmail: currentUser.email, // Pastikan sellerEmail diset
-        createdAt: new Date()
+        sellerId: currentUser.uid,
+        sellerEmail: currentUser.email,
+        createdAt: new Date(),
+        imageUrl: imageUrl // Gunakan URL dari Blob
       };
 
       const docRef = await addDoc(collection(db, 'accounts'), newAccountData);
@@ -60,6 +108,7 @@ export default function SubmitPage() {
         category: '',
         description: ''
       });
+      setImage(null);
       router.push('/');
 
     } catch (error) {
@@ -70,6 +119,7 @@ export default function SubmitPage() {
 
   return (
     <AuthWrapper>
+      <Header />
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f0f2f5' }}>
         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', width: '100%', maxWidth: '500px' }}>
           <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Tambah Akun Baru</h2>
@@ -127,11 +177,30 @@ export default function SubmitPage() {
                 style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
               ></textarea>
             </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <label htmlFor="image" style={{ display: 'block', marginBottom: '0.5rem' }}>Gambar Akun (Opsional)</label>
+              <input
+                type="file"
+                id="image"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+              />
+            </div>
             <button
               type="submit"
-              style={{ width: '100%', padding: '0.75rem', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              disabled={uploading}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                backgroundColor: uploading ? '#6c757d' : '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: uploading ? 'not-allowed' : 'pointer'
+              }}
             >
-              Tambahkan Akun
+              {uploading ? 'Mengupload...' : 'Tambahkan Akun'}
             </button>
           </form>
         </div>
